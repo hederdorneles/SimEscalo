@@ -2,8 +2,8 @@ object FormSimulador: TFormSimulador
   Left = 0
   Top = 0
   Caption = 'Simulador de Escalonamento'
-  ClientHeight = 595
-  ClientWidth = 892
+  ClientHeight = 602
+  ClientWidth = 904
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -15,8 +15,8 @@ object FormSimulador: TFormSimulador
   OnCreate = FormCreate
   TextHeight = 15
   object Label1: TLabel
-    Left = 1
-    Top = 211
+    Left = 0
+    Top = 215
     Width = 73
     Height = 21
     Caption = 'Algoritmo:'
@@ -29,7 +29,7 @@ object FormSimulador: TFormSimulador
   end
   object Label2: TLabel
     Left = 277
-    Top = 211
+    Top = 215
     Width = 69
     Height = 21
     Caption = 'Quantum:'
@@ -42,12 +42,18 @@ object FormSimulador: TFormSimulador
   end
   object btnSimular: TSpeedButton
     Left = 473
-    Top = 200
+    Top = 214
     Width = 105
     Height = 49
     Cursor = crHandPoint
     Caption = 'Simular'
-    StyleElements = [seFont, seClient]
+    Flat = True
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -12
+    Font.Name = 'Segoe UI'
+    Font.Style = [fsBold]
+    ParentFont = False
     OnClick = btnSimularClick
   end
   object Label3: TLabel
@@ -65,7 +71,7 @@ object FormSimulador: TFormSimulador
   end
   object Label4: TLabel
     Left = 1
-    Top = 251
+    Top = 253
     Width = 66
     Height = 21
     Caption = 'Execu'#231#227'o:'
@@ -78,7 +84,7 @@ object FormSimulador: TFormSimulador
   end
   object Label5: TLabel
     Left = 1
-    Top = 424
+    Top = 432
     Width = 72
     Height = 21
     Caption = 'Resultado:'
@@ -103,8 +109,8 @@ object FormSimulador: TFormSimulador
     ParentFont = False
   end
   object Label7: TLabel
-    Left = 425
-    Top = 28
+    Left = 385
+    Top = 29
     Width = 125
     Height = 21
     Caption = 'Tempo de Servi'#231'o:'
@@ -116,27 +122,39 @@ object FormSimulador: TFormSimulador
     ParentFont = False
   end
   object btnLimpar: TSpeedButton
-    Left = 815
-    Top = 56
-    Width = 73
-    Height = 145
+    Left = 609
+    Top = 214
+    Width = 105
+    Height = 49
     Caption = 'Limpar'
-    StyleElements = [seFont, seClient]
+    Flat = True
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -12
+    Font.Name = 'Segoe UI'
+    Font.Style = [fsBold]
+    ParentFont = False
     OnClick = btnLimparClick
   end
   object btnAdicionar: TSpeedButton
-    Left = 696
-    Top = 17
+    Left = 656
+    Top = 18
     Width = 113
     Height = 33
     Caption = 'Adicionar Processo'
-    StyleElements = [seFont, seClient]
+    Flat = True
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -12
+    Font.Name = 'Segoe UI'
+    Font.Style = [fsBold]
+    ParentFont = False
     OnClick = btnAdicionarClick
   end
   object GridEntrada: TStringGrid
     Left = 1
     Top = 56
-    Width = 808
+    Width = 883
     Height = 146
     ColCount = 3
     FixedCols = 0
@@ -166,16 +184,16 @@ object FormSimulador: TFormSimulador
   end
   object GridGantt: TStringGrid
     Left = 1
-    Top = 272
-    Width = 857
-    Height = 137
+    Top = 278
+    Width = 883
+    Height = 148
     DefaultDrawing = False
     TabOrder = 3
     OnDrawCell = GridGanttDrawCell
   end
   object GridResultados: TStringGrid
     Left = 1
-    Top = 445
+    Top = 453
     Width = 425
     Height = 129
     ColCount = 4
@@ -190,15 +208,25 @@ object FormSimulador: TFormSimulador
     TabOrder = 5
   end
   object edtServico: TEdit
-    Left = 556
-    Top = 28
+    Left = 516
+    Top = 29
     Width = 121
     Height = 23
     TabOrder = 6
   end
+  object StatusBar1: TStatusBar
+    Left = 0
+    Top = 583
+    Width = 904
+    Height = 19
+    Panels = <>
+    ExplicitLeft = 584
+    ExplicitTop = 592
+    ExplicitWidth = 0
+  end
   object MainMenu1: TMainMenu
-    Left = 729
-    Top = 504
+    Left = 817
+    Top = 448
     object Arquivo1: TMenuItem
       Caption = '&Arquivo'
       object Sair1: TMenuItem

@@ -12,6 +12,7 @@
 #include <Vcl.Grids.hpp>
 #include <Vcl.Buttons.hpp>
 #include <Vcl.Menus.hpp>
+#include <Vcl.ComCtrls.hpp>
 //---------------------------------------------------------------------------
 class TFormSimulador : public TForm
 {
@@ -37,6 +38,7 @@ __published:	// IDE-managed Components
     TEdit *edtServico;
     TSpeedButton *btnLimpar;
     TSpeedButton *btnAdicionar;
+    TStatusBar *StatusBar1;
     void __fastcall FormCreate(TObject *Sender);
     void __fastcall Sobre1Click(TObject *Sender);
     void __fastcall Sair1Click(TObject *Sender);

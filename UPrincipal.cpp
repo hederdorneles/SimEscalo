@@ -9,8 +9,6 @@
 #include <System.SysUtils.hpp> // FormatFloat
 
 
-
-
 #include "UPrincipal.h"
 #include "USobre.h"
 //---------------------------------------------------------------------------
@@ -29,7 +27,16 @@ struct Processo {
     int fim;
     int turnaround;
     float turnaround_normalizado;
+    int restante;  // tempo restante de execução
 };
+
+void LimparGridGantt() {
+    for (int row = 1; row < FormSimulador->GridGantt->RowCount; row++) {
+        for (int col = 1; col < FormSimulador->GridGantt->ColCount; col++) {
+            FormSimulador->GridGantt->Cells[col][row] = "";
+        }
+    }
+}
 
 // Carregamento dos processos no struct
 std::vector<Processo> LerProcessos() {
@@ -61,14 +68,20 @@ void SimularFCFS() {
         tempoEstimado += p.duracao;
 
     // === Preparar Grid de Gantt ===
+    //    int numProcessos = processos.size();
+    //    FormSimulador->GridGantt->RowCount = numProcessos + 1;  // Linha 0 = tempo
+    //    FormSimulador->GridGantt->ColCount = tempoEstimado + 1; // Coluna 0 = PID
     int numProcessos = processos.size();
-    FormSimulador->GridGantt->RowCount = numProcessos + 1;  // Linha 0 = tempo
-    FormSimulador->GridGantt->ColCount = tempoEstimado + 1; // Coluna 0 = PID
+    FormSimulador->GridGantt->RowCount = numProcessos + 1;
+    FormSimulador->GridGantt->ColCount = tempoEstimado + 1;
 
     // Cabeçalho de tempo
     FormSimulador->GridGantt->Cells[0][0] = "";
     for (int t = 1; t <= tempoEstimado; ++t)
         FormSimulador->GridGantt->Cells[t][0] = IntToStr(t);
+
+    // Limpa o conteúdo anterior
+    LimparGridGantt();
 
     // === Ordenar os PIDs alfabeticamente para o Gantt ===
     std::vector<String> pids;
@@ -78,8 +91,7 @@ void SimularFCFS() {
 
     // Mapear PID → linha no grid
     std::map<String, int> pidParaLinha;
-    for (int i = 0; i < pids.size(); ++i)
-    {
+    for (int i = 0; i < pids.size(); ++i) {
         FormSimulador->GridGantt->Cells[0][i + 1] = pids[i];
         pidParaLinha[pids[i]] = i + 1;
     }
@@ -102,9 +114,6 @@ void SimularFCFS() {
         tempo = p.fim;
     }
 
-
-
-
     // === Preencher resultados ===
     FormSimulador->GridResultados->RowCount = numProcessos + 1;
     FormSimulador->GridResultados->Cells[0][0] = "PID";
@@ -121,6 +130,323 @@ void SimularFCFS() {
     }
 
     // Redesenhar o Gantt com cores
+    FormSimulador->GridGantt->Invalidate();
+}
+
+// Executa simulação do SPN
+void SimularSPN()
+{
+    auto todos = LerProcessos();
+    std::vector<Processo> fila;
+    std::vector<Processo> finalizados;
+
+    // Estimar tempo total da simulação (soma das durações)
+    int tempoEstimado = 0;
+    for (const auto& p : todos)
+        tempoEstimado += p.duracao;
+
+    // === Preparar Grid de Gantt ===
+    int numProcessos = todos.size();
+    FormSimulador->GridGantt->RowCount = numProcessos + 1;
+    FormSimulador->GridGantt->ColCount = tempoEstimado + 1;
+
+    FormSimulador->GridGantt->Cells[0][0] = "";
+    for (int t = 1; t <= tempoEstimado; ++t)
+        FormSimulador->GridGantt->Cells[t][0] = IntToStr(t);
+
+    // Limpar conteúdo anterior
+    LimparGridGantt();
+
+    // Mapear PID → linha (ordem alfabética)
+    std::vector<String> pids;
+    for (auto& p : todos)
+        pids.push_back(p.pid);
+    std::sort(pids.begin(), pids.end());
+
+    std::map<String, int> pidParaLinha;
+    for (int i = 0; i < pids.size(); ++i) {
+        FormSimulador->GridGantt->Cells[0][i + 1] = pids[i];
+        pidParaLinha[pids[i]] = i + 1;
+    }
+
+    // Ordenar inicialmente por chegada
+    std::sort(todos.begin(), todos.end(), [](const Processo &a, const Processo &b) {
+        return a.chegada < b.chegada;
+    });
+
+    int tempo = 0;
+
+    // Loop até todos os processos serem executados
+    while (!todos.empty() || !fila.empty())
+    {
+        // Move para a fila os processos que já chegaram
+        for (auto it = todos.begin(); it != todos.end();) {
+            if (it->chegada <= tempo) {
+                fila.push_back(*it);
+                it = todos.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
+        // Se a fila estiver vazia, avance o tempo
+        if (fila.empty()) {
+            tempo++;
+            continue;
+        }
+
+        // Escolhe o menor tempo de duração
+        auto itMenor = std::min_element(fila.begin(), fila.end(), [](const Processo &a, const Processo &b) {
+            return a.duracao < b.duracao;
+        });
+
+        Processo exec = *itMenor;
+        fila.erase(itMenor);
+
+        exec.fim = tempo + exec.duracao;
+        exec.turnaround = exec.fim - exec.chegada;
+        exec.turnaround_normalizado = (float)exec.turnaround / exec.duracao;
+
+        int linha = pidParaLinha[exec.pid];
+        for (int t = tempo; t < exec.fim; ++t)
+            FormSimulador->GridGantt->Cells[t + 1][linha] = "x";
+
+        tempo = exec.fim;
+        finalizados.push_back(exec);
+    }
+
+    // Preencher Grid de Resultados
+    FormSimulador->GridResultados->RowCount = finalizados.size() + 1;
+    FormSimulador->GridResultados->Cells[0][0] = "PID";
+    FormSimulador->GridResultados->Cells[1][0] = "Fim";
+    FormSimulador->GridResultados->Cells[2][0] = "Turnaround";
+    FormSimulador->GridResultados->Cells[3][0] = "T. Normalizado";
+
+    for (int i = 0; i < finalizados.size(); ++i)
+    {
+        FormSimulador->GridResultados->Cells[0][i + 1] = finalizados[i].pid;
+        FormSimulador->GridResultados->Cells[1][i + 1] = IntToStr(finalizados[i].fim);
+        FormSimulador->GridResultados->Cells[2][i + 1] = IntToStr(finalizados[i].turnaround);
+        FormSimulador->GridResultados->Cells[3][i + 1] = FormatFloat("0.00", finalizados[i].turnaround_normalizado);
+    }
+
+    // Redesenhar Gantt
+    FormSimulador->GridGantt->Invalidate();
+}
+
+// Executa simulação do RR
+void SimularRR()
+{
+    auto processos = LerProcessos();
+    std::vector<Processo> fila;
+    std::vector<Processo> aguardando = processos;
+    std::vector<Processo> finalizados;
+
+    int quantum = StrToIntDef(FormSimulador->edtQuantum->Text, 1);
+    if (quantum <= 0) {
+        ShowMessage("Informe um quantum válido (> 0)");
+        return;
+    }
+
+    // Inicializa tempo restante
+    for (auto& p : aguardando)
+        p.restante = p.duracao;
+
+    // Estimar tempo total
+    int tempoEstimado = 0;
+    for (const auto& p : processos)
+        tempoEstimado += p.duracao;
+
+    int numProcessos = processos.size();
+    FormSimulador->GridGantt->RowCount = numProcessos + 1;
+    FormSimulador->GridGantt->ColCount = tempoEstimado * 2 + 1;
+
+    FormSimulador->GridGantt->Cells[0][0] = "";
+    for (int t = 1; t < FormSimulador->GridGantt->ColCount; ++t)
+        FormSimulador->GridGantt->Cells[t][0] = IntToStr(t);
+
+    LimparGridGantt();
+
+    // Mapeia PID → linha (ordem alfabética)
+    std::vector<String> pids;
+    for (const auto& p : processos)
+        pids.push_back(p.pid);
+    std::sort(pids.begin(), pids.end());
+
+    std::map<String, int> pidParaLinha;
+    for (int i = 0; i < pids.size(); ++i) {
+        FormSimulador->GridGantt->Cells[0][i + 1] = pids[i];
+        pidParaLinha[pids[i]] = i + 1;
+    }
+
+    std::sort(aguardando.begin(), aguardando.end(), [](const Processo& a, const Processo& b) {
+        return a.chegada < b.chegada;
+    });
+
+    int tempo = 0;
+
+    while (!aguardando.empty() || !fila.empty()) {
+        // Primeiro: mover todos que chegaram até o tempo atual
+        for (auto it = aguardando.begin(); it != aguardando.end(); ) {
+            if (it->chegada <= tempo) {
+                fila.push_back(*it);
+                it = aguardando.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
+        // Se a fila ainda estiver vazia, avance o tempo
+        if (fila.empty()) {
+            tempo++;
+            continue;
+        }
+
+        // Executa o primeiro da fila
+        Processo p = fila.front();
+        fila.erase(fila.begin());
+
+        int executar = std::min(quantum, p.restante);
+        int linha = pidParaLinha[p.pid];
+
+        for (int t = tempo; t < tempo + executar; ++t)
+            FormSimulador->GridGantt->Cells[t + 1][linha] = "x";
+
+        tempo += executar;
+        p.restante -= executar;
+
+        // Agora, checa se novos processos chegaram neste tempo
+        for (auto it = aguardando.begin(); it != aguardando.end(); ) {
+            if (it->chegada <= tempo) {
+                fila.push_back(*it);
+                it = aguardando.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
+        // Processo atual volta ao fim da fila, se não terminou
+        if (p.restante > 0) {
+            fila.push_back(p);
+        } else {
+            p.fim = tempo;
+            p.turnaround = p.fim - p.chegada;
+            p.turnaround_normalizado = (float)p.turnaround / p.duracao;
+            finalizados.push_back(p);
+        }
+    }
+
+    // Preencher Grid de Resultados
+    FormSimulador->GridResultados->RowCount = finalizados.size() + 1;
+    FormSimulador->GridResultados->Cells[0][0] = "PID";
+    FormSimulador->GridResultados->Cells[1][0] = "Fim";
+    FormSimulador->GridResultados->Cells[2][0] = "Turnaround";
+    FormSimulador->GridResultados->Cells[3][0] = "T. Normalizado";
+
+    for (int i = 0; i < finalizados.size(); ++i) {
+        FormSimulador->GridResultados->Cells[0][i + 1] = finalizados[i].pid;
+        FormSimulador->GridResultados->Cells[1][i + 1] = IntToStr(finalizados[i].fim);
+        FormSimulador->GridResultados->Cells[2][i + 1] = IntToStr(finalizados[i].turnaround);
+        FormSimulador->GridResultados->Cells[3][i + 1] = FormatFloat("0.00", finalizados[i].turnaround_normalizado);
+    }
+
+    FormSimulador->GridGantt->Invalidate();
+}
+
+
+// Executa SRT
+void SimularSRT()
+{
+    auto todos = LerProcessos();
+    std::vector<Processo> prontos;
+    std::vector<Processo> finalizados;
+
+    // Inicializa restante
+    for (auto& p : todos)
+        p.restante = p.duracao;
+
+    // Estimar tempo máximo
+    int tempoEstimado = 0;
+    for (const auto& p : todos)
+        tempoEstimado += p.duracao;
+
+    int numProcessos = todos.size();
+    FormSimulador->GridGantt->RowCount = numProcessos + 1;
+    FormSimulador->GridGantt->ColCount = tempoEstimado + 1;
+
+    FormSimulador->GridGantt->Cells[0][0] = "";
+    for (int t = 1; t < FormSimulador->GridGantt->ColCount; ++t)
+        FormSimulador->GridGantt->Cells[t][0] = IntToStr(t);
+
+    LimparGridGantt();
+
+    // Mapeia PID → linha (ordem alfabética)
+    std::vector<String> pids;
+    for (const auto& p : todos)
+        pids.push_back(p.pid);
+    std::sort(pids.begin(), pids.end());
+
+    std::map<String, int> pidParaLinha;
+    for (int i = 0; i < pids.size(); ++i) {
+        FormSimulador->GridGantt->Cells[0][i + 1] = pids[i];
+        pidParaLinha[pids[i]] = i + 1;
+    }
+
+    int tempo = 0;
+
+    while (!todos.empty() || !prontos.empty()) {
+        // Move para prontos os que chegaram
+        for (auto it = todos.begin(); it != todos.end(); ) {
+            if (it->chegada <= tempo) {
+                prontos.push_back(*it);
+                it = todos.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
+        if (prontos.empty()) {
+            tempo++;
+            continue;
+        }
+
+        // Escolhe o processo com menor restante
+        auto itMenor = std::min_element(prontos.begin(), prontos.end(), [](const Processo& a, const Processo& b) {
+            return a.restante < b.restante;
+        });
+
+        Processo& atual = *itMenor;
+        int linha = pidParaLinha[atual.pid];
+
+        // Executa 1 unidade
+        FormSimulador->GridGantt->Cells[tempo + 1][linha] = "x";
+        atual.restante--;
+        tempo++;
+
+        // Se terminou, registra fim e remove
+        if (atual.restante == 0) {
+            atual.fim = tempo;
+            atual.turnaround = atual.fim - atual.chegada;
+            atual.turnaround_normalizado = (float)atual.turnaround / atual.duracao;
+            finalizados.push_back(atual);
+            prontos.erase(itMenor);
+        }
+    }
+
+    // Preencher resultados
+    FormSimulador->GridResultados->RowCount = finalizados.size() + 1;
+    FormSimulador->GridResultados->Cells[0][0] = "PID";
+    FormSimulador->GridResultados->Cells[1][0] = "Fim";
+    FormSimulador->GridResultados->Cells[2][0] = "Turnaround";
+    FormSimulador->GridResultados->Cells[3][0] = "T. Normalizado";
+
+    for (int i = 0; i < finalizados.size(); ++i) {
+        FormSimulador->GridResultados->Cells[0][i + 1] = finalizados[i].pid;
+        FormSimulador->GridResultados->Cells[1][i + 1] = IntToStr(finalizados[i].fim);
+        FormSimulador->GridResultados->Cells[2][i + 1] = IntToStr(finalizados[i].turnaround);
+        FormSimulador->GridResultados->Cells[3][i + 1] = FormatFloat("0.00", finalizados[i].turnaround_normalizado);
+    }
+
     FormSimulador->GridGantt->Invalidate();
 }
 
@@ -141,7 +467,7 @@ void __fastcall TFormSimulador::FormCreate(TObject *Sender)
 
     GridEntrada->Cells[0][0] = "PID";
     GridEntrada->Cells[1][0] = "Chegada";
-    GridEntrada->Cells[2][0] = "Duração";
+    GridEntrada->Cells[2][0] = "Serviço";
 
     GridEntrada->ColWidths[0] = 50;
     GridEntrada->ColWidths[1] = 70;
@@ -220,7 +546,7 @@ void __fastcall TFormSimulador::btnAdicionarClick(TObject *Sender) {
 
     // Validação
     if (!TryStrToInt(edtChegada->Text, chegada) || !TryStrToInt(edtServico->Text, duracao)) {
-        ShowMessage("Insira valores válidos para chegada e duração.");
+        ShowMessage("Insira valores válidos para chegada e tempo de serviço.");
         return;
     }
 
@@ -281,9 +607,16 @@ void __fastcall TFormSimulador::btnSimularClick(TObject *Sender)
     if (cmbAlgoritmo->ItemIndex == 0) { // FCFS
         SimularFCFS();
         GridGantt->Invalidate();  // força redesenho com o OnDrawCell
+    } else if (cmbAlgoritmo->ItemIndex == 1) {
+        SimularRR();
+        GridGantt->Invalidate();
+    } else if (cmbAlgoritmo->ItemIndex == 2) {
+        SimularSPN();
+        GridGantt->Invalidate();
+    } else if (cmbAlgoritmo->ItemIndex == 3) {
+        SimularSRT();
+        GridGantt->Invalidate();
     }
-    else
-        ShowMessage("Algoritmo ainda não implementado.");
 }
 //---------------------------------------------------------------------------
 void __fastcall TFormSimulador::GridGanttDrawCell(TObject *Sender, System::LongInt ACol,
