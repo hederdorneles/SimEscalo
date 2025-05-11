@@ -19,3 +19,9 @@ void __fastcall TfrmSobre::btnSairClick(TObject *Sender)
     frmSobre->Close();
 }
 //---------------------------------------------------------------------------
+void __fastcall TfrmSobre::lblUrlClick(TObject *Sender)
+{
+    ShellExecute(0, L"open", L"https://github.com/hederdorneles/SimEscalo", 0, 0, SW_SHOWNORMAL);
+}
+//---------------------------------------------------------------------------
+

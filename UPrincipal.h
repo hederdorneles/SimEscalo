@@ -13,6 +13,8 @@
 #include <Vcl.Buttons.hpp>
 #include <Vcl.Menus.hpp>
 #include <Vcl.ComCtrls.hpp>
+#include <System.ImageList.hpp>
+#include <Vcl.ImgList.hpp>
 //---------------------------------------------------------------------------
 class TFormSimulador : public TForm
 {
@@ -22,7 +24,6 @@ __published:	// IDE-managed Components
     TLabel *Label1;
     TLabel *Label2;
     TEdit *edtQuantum;
-    TSpeedButton *btnSimular;
     TStringGrid *GridGantt;
     TStringGrid *GridResultados;
     TMainMenu *MainMenu1;
@@ -36,18 +37,23 @@ __published:	// IDE-managed Components
     TLabel *Label7;
     TEdit *edtChegada;
     TEdit *edtServico;
-    TSpeedButton *btnLimpar;
     TSpeedButton *btnAdicionar;
     TStatusBar *StatusBar1;
+    TImageList *imgList;
+    TPanel *pnlButoes;
+    TBitBtn *btnSimular;
+    TBitBtn *btnLimpar;
+    TBitBtn *btnAleatorio;
     void __fastcall FormCreate(TObject *Sender);
     void __fastcall Sobre1Click(TObject *Sender);
     void __fastcall Sair1Click(TObject *Sender);
     void __fastcall cmbAlgoritmoChange(TObject *Sender);
     void __fastcall btnAdicionarClick(TObject *Sender);
-    void __fastcall btnLimparClick(TObject *Sender);
-    void __fastcall btnSimularClick(TObject *Sender);
     void __fastcall GridGanttDrawCell(TObject *Sender, System::LongInt ACol, System::LongInt ARow,
           TRect &Rect, TGridDrawState State);
+    void __fastcall btnSimularClick(TObject *Sender);
+    void __fastcall btnLimparClick(TObject *Sender);
+    void __fastcall btnAleatorioClick(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
     __fastcall TFormSimulador(TComponent* Owner);

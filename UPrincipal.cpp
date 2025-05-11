@@ -511,19 +511,19 @@ void __fastcall TFormSimulador::FormCreate(TObject *Sender)
 
 
     // Entradas de teste
-    GridEntrada->RowCount = 4; // 1 cabeçalho + 3 processos
-
-    GridEntrada->Cells[0][1] = "A";
-    GridEntrada->Cells[1][1] = "0";
-    GridEntrada->Cells[2][1] = "5";
-
-    GridEntrada->Cells[0][2] = "B";
-    GridEntrada->Cells[1][2] = "2";
-    GridEntrada->Cells[2][2] = "3";
-
-    GridEntrada->Cells[0][3] = "C";
-    GridEntrada->Cells[1][3] = "4";
-    GridEntrada->Cells[2][3] = "1";
+//    GridEntrada->RowCount = 4; // 1 cabeçalho + 3 processos
+//
+//    GridEntrada->Cells[0][1] = "A";
+//    GridEntrada->Cells[1][1] = "0";
+//    GridEntrada->Cells[2][1] = "5";
+//
+//    GridEntrada->Cells[0][2] = "B";
+//    GridEntrada->Cells[1][2] = "2";
+//    GridEntrada->Cells[2][2] = "3";
+//
+//    GridEntrada->Cells[0][3] = "C";
+//    GridEntrada->Cells[1][3] = "4";
+//    GridEntrada->Cells[2][3] = "1";
 }
 //---------------------------------------------------------------------------
 void __fastcall TFormSimulador::Sobre1Click(TObject *Sender)
@@ -576,6 +576,48 @@ void __fastcall TFormSimulador::btnAdicionarClick(TObject *Sender) {
     edtChegada->SetFocus();
 }
 //---------------------------------------------------------------------------
+void __fastcall TFormSimulador::GridGanttDrawCell(TObject *Sender, System::LongInt ACol,
+          System::LongInt ARow, TRect &Rect, TGridDrawState State)
+{
+    TStringGrid *grid = dynamic_cast<TStringGrid*>(Sender);
+    AnsiString texto = grid->Cells[ACol][ARow];
+
+    // === CABEÇALHOS: primeira linha (tempo) e primeira coluna (nomes de processos) ===
+    if (ARow == 0 || ACol == 0)
+    {
+        grid->Canvas->Brush->Color = clBtnFace;  // cor de fundo padrão
+        grid->Canvas->FillRect(Rect);
+        grid->Canvas->TextOut(Rect.Left + 4, Rect.Top + 2, texto);
+        return;
+    }
+
+    // === CORPO DO GRID: células internas ===
+    if (texto == "x")
+        grid->Canvas->Brush->Color = clRed;
+    else
+        grid->Canvas->Brush->Color = clWhite;
+
+    grid->Canvas->FillRect(Rect);
+    // Nenhum texto é desenhado nas células de execução
+}
+//---------------------------------------------------------------------------
+void __fastcall TFormSimulador::btnSimularClick(TObject *Sender)
+{
+    if (cmbAlgoritmo->ItemIndex == 0) { // FCFS
+            SimularFCFS();
+            GridGantt->Invalidate();  // força redesenho com o OnDrawCell
+        } else if (cmbAlgoritmo->ItemIndex == 1) {
+            SimularRR();
+            GridGantt->Invalidate();
+        } else if (cmbAlgoritmo->ItemIndex == 2) {
+            SimularSPN();
+            GridGantt->Invalidate();
+        } else if (cmbAlgoritmo->ItemIndex == 3) {
+            SimularSRT();
+            GridGantt->Invalidate();
+        }
+}
+//---------------------------------------------------------------------------
 void __fastcall TFormSimulador::btnLimparClick(TObject *Sender)
 {
     // Limpa o GridEntrada
@@ -602,45 +644,27 @@ void __fastcall TFormSimulador::btnLimparClick(TObject *Sender)
     GridGantt->Invalidate();
 }
 //---------------------------------------------------------------------------
-void __fastcall TFormSimulador::btnSimularClick(TObject *Sender)
+void __fastcall TFormSimulador::btnAleatorioClick(TObject *Sender)
 {
-    if (cmbAlgoritmo->ItemIndex == 0) { // FCFS
-        SimularFCFS();
-        GridGantt->Invalidate();  // força redesenho com o OnDrawCell
-    } else if (cmbAlgoritmo->ItemIndex == 1) {
-        SimularRR();
-        GridGantt->Invalidate();
-    } else if (cmbAlgoritmo->ItemIndex == 2) {
-        SimularSPN();
-        GridGantt->Invalidate();
-    } else if (cmbAlgoritmo->ItemIndex == 3) {
-        SimularSRT();
-        GridGantt->Invalidate();
-    }
-}
-//---------------------------------------------------------------------------
-void __fastcall TFormSimulador::GridGanttDrawCell(TObject *Sender, System::LongInt ACol,
-          System::LongInt ARow, TRect &Rect, TGridDrawState State)
-{
-    TStringGrid *grid = dynamic_cast<TStringGrid*>(Sender);
-    AnsiString texto = grid->Cells[ACol][ARow];
+    const int qtd = 4; // número de processos
+    GridEntrada->RowCount = qtd + 1;
 
-    // === CABEÇALHOS: primeira linha (tempo) e primeira coluna (nomes de processos) ===
-    if (ARow == 0 || ACol == 0)
-    {
-        grid->Canvas->Brush->Color = clBtnFace;  // cor de fundo padrão
-        grid->Canvas->FillRect(Rect);
-        grid->Canvas->TextOut(Rect.Left + 4, Rect.Top + 2, texto);
-        return;
+    Randomize();
+
+    int chegada = 0;
+
+    for (int i = 0; i < qtd; ++i) {
+        String pid = String((char)('A' + i));
+        int duracao = Random(5) + 1;  // entre 1 e 5
+        GridEntrada->Cells[0][i + 1] = pid;
+        GridEntrada->Cells[1][i + 1] = IntToStr(chegada);
+        GridEntrada->Cells[2][i + 1] = IntToStr(duracao);
+
+        chegada += Random(2); // 0 ou 1 (ou aumente para Random(3) se quiser espaçar mais)
     }
 
-    // === CORPO DO GRID: células internas ===
-    if (texto == "x")
-        grid->Canvas->Brush->Color = clRed;
-    else
-        grid->Canvas->Brush->Color = clWhite;
-
-    grid->Canvas->FillRect(Rect);
-    // Nenhum texto é desenhado nas células de execução
+    edtChegada->Clear();
+    edtServico->Clear();
+    edtChegada->SetFocus();
 }
 //---------------------------------------------------------------------------
