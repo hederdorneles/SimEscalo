@@ -24,7 +24,7 @@ Ele permite simular visualmente a execução de processos com base em diferentes
 
 Você pode baixar o executável clicando no link abaixo:
 
-➡️ [Download SimEscalo.exe](https://raw.githubusercontent.com/hederdorneles/SimEscalo/d20ac70a7de62442b4218d5eeebc3bdd8f0d9a26/Win64/Debug/SimEscalo.exe)
+➡️ [Download SimEscalo.exe](https://raw.githubusercontent.com/hederdorneles/SimEscalo/refs/heads/master/Win64/Debug/SimEscalo.exe)
 
 > ⚠️ Para Windows 64-bit. Não requer instalação.
 
